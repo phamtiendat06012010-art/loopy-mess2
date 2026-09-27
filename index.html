@@ -1,0 +1,1470 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Loopy Messenger 🌸</title>
+
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+
+<script>
+tailwind.config={
+theme:{
+extend:{
+colors:{
+loopy:{
+100:'#fff0f3',
+200:'#ffe4e8',
+300:'#fecdd3',
+400:'#fda4af',
+500:'#f43f5e',
+600:'#e11d48',
+accent:'#ff758f',
+soft:'#fffafb'
+}
+},
+fontFamily:{
+sans:['Nunito','sans-serif']
+}
+}
+}
+}
+</script>
+
+<style>
+*{
+box-sizing:border-box;
+}
+
+::-webkit-scrollbar{
+width:6px;
+height:6px;
+}
+
+::-webkit-scrollbar-track{
+background:#ffe4e8;
+}
+
+::-webkit-scrollbar-thumb{
+background:#fda4af;
+border-radius:20px;
+}
+
+::-webkit-scrollbar-thumb:hover{
+background:#f43f5e;
+}
+
+body{
+-webkit-tap-highlight-color:transparent;
+}
+
+.loopy-card{
+background:rgba(255,255,255,.86);
+backdrop-filter:blur(18px);
+-webkit-backdrop-filter:blur(18px);
+border:2px solid rgba(255,255,255,.8);
+}
+
+.glass{
+background:rgba(255,255,255,.72);
+backdrop-filter:blur(14px);
+-webkit-backdrop-filter:blur(14px);
+}
+
+.sticker-bounce{
+transition:.2s;
+}
+
+.sticker-bounce:hover{
+transform:scale(1.12) rotate(3deg);
+}
+
+.emoji-item{
+transition:.15s;
+cursor:pointer;
+}
+
+.emoji-item:hover{
+transform:scale(1.35);
+background:#fff0f3;
+}
+
+.message-in{
+animation:messageIn .22s ease-out;
+}
+
+@keyframes messageIn{
+from{
+opacity:0;
+transform:translateY(10px) scale(.97);
+}
+to{
+opacity:1;
+transform:translateY(0) scale(1);
+}
+}
+
+.pulse-heart{
+animation:pulseHeart 1.5s infinite;
+}
+
+@keyframes pulseHeart{
+0%,100%{transform:scale(1)}
+50%{transform:scale(1.08)}
+}
+
+.float-heart{
+position:fixed;
+pointer-events:none;
+font-size:18px;
+animation:floatHeart 1.4s ease-out forwards;
+z-index:100;
+}
+
+@keyframes floatHeart{
+0%{
+opacity:1;
+transform:translateY(0) scale(1);
+}
+100%{
+opacity:0;
+transform:translateY(-100px) scale(1.6);
+}
+}
+
+.picker{
+animation:pickerIn .18s ease-out;
+transform-origin:bottom center;
+}
+
+@keyframes pickerIn{
+from{
+opacity:0;
+transform:scale(.95) translateY(8px);
+}
+to{
+opacity:1;
+transform:scale(1) translateY(0);
+}
+}
+
+.tab-active{
+background:#ff758f;
+color:white;
+box-shadow:0 4px 12px rgba(244,63,94,.2);
+}
+
+.chat-bg{
+background-image:
+radial-gradient(circle at 20% 20%,rgba(253,164,175,.13) 0 2px,transparent 3px),
+radial-gradient(circle at 80% 70%,rgba(244,63,94,.08) 0 2px,transparent 3px);
+background-size:40px 40px,55px 55px;
+}
+
+.online-dot{
+box-shadow:0 0 0 3px rgba(52,211,153,.15);
+}
+</style>
+</head>
+
+<body class="bg-gradient-to-br from-pink-200 via-rose-100 to-pink-300 text-slate-700 h-screen w-screen flex items-center justify-center p-2 md:p-5 font-sans select-none overflow-hidden">
+
+<div class="w-full max-w-6xl h-full rounded-[2.5rem] shadow-2xl flex flex-col md:flex-row overflow-hidden loopy-card relative">
+
+<!-- NOTICE -->
+<div id="canvasNoticeBanner" class="hidden absolute top-0 left-0 right-0 bg-pink-500/95 text-white text-xs px-4 py-2 items-center justify-between z-[80]">
+<div class="flex items-center gap-2">
+<i class="fa-solid fa-circle-info"></i>
+<span id="noticeMsg"></span>
+</div>
+
+<button onclick="openInNewTab()" class="bg-white text-pink-600 font-bold px-3 py-1 rounded-xl">
+🚀 Mở Tab Mới
+</button>
+</div>
+
+<!-- TOAST -->
+<div id="toast" class="absolute top-4 right-4 z-[100] bg-loopy-accent text-white text-xs font-bold px-4 py-3 rounded-2xl shadow-xl transition-all duration-300 translate-y-[-100px] opacity-0 flex items-center gap-2 border-2 border-white">
+<i class="fa-solid fa-heart"></i>
+<span id="toastMsg"></span>
+</div>
+
+<!-- SIDEBAR -->
+<aside class="w-full md:w-80 lg:w-96 border-r-2 border-pink-200/80 flex flex-col bg-white/60 shrink-0">
+
+<!-- PROFILE -->
+<div class="p-4 border-b-2 border-pink-200/80 flex items-center justify-between bg-pink-100/60">
+
+<div class="flex items-center gap-3">
+
+<div class="relative group cursor-pointer" onclick="openAvatarModal()">
+
+<div id="myAvatarContainer" class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-pink-400 to-rose-400 flex items-center justify-center font-bold text-white text-xl shadow-md border-2 border-white overflow-hidden group-hover:scale-105 transition">
+<span id="myAvatarDisplay">🎀</span>
+</div>
+
+<div class="absolute inset-0 bg-black/30 rounded-2xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition text-white text-xs">
+<i class="fa-solid fa-camera"></i>
+</div>
+
+<span class="w-4 h-4 bg-emerald-400 border-2 border-white rounded-full absolute -bottom-0.5 -right-0.5"></span>
+
+</div>
+
+<div>
+<h1 class="font-extrabold text-base text-pink-700">
+Bạn (Loopy)
+</h1>
+
+<p id="statusBadge" class="text-xs text-rose-500 font-bold">
+Đang khởi tạo...
+</p>
+</div>
+
+</div>
+
+<button onclick="openAvatarModal()" class="text-xs bg-white/80 hover:bg-white text-pink-600 font-extrabold px-2.5 py-1.5 rounded-xl border border-pink-200 shadow-sm">
+<i class="fa-solid fa-pen"></i>
+</button>
+
+</div>
+
+<!-- CONNECTION -->
+<div class="p-4 space-y-4 border-b-2 border-pink-200/80 bg-pink-50/40">
+
+<div class="bg-white p-3 rounded-2xl border-2 border-pink-200 shadow-sm">
+
+<span class="text-[11px] font-bold text-pink-400 uppercase tracking-wider">
+🌸 Mã ID Của Bạn
+</span>
+
+<div class="flex items-center justify-between gap-2 mt-1">
+
+<span id="myIdText" class="font-mono text-xs font-extrabold text-pink-600 truncate">
+Đang tạo...
+</span>
+
+<button onclick="copyMyId()" class="bg-pink-100 hover:bg-pink-200 text-pink-600 font-bold px-3 py-1.5 rounded-xl text-xs">
+<i class="fa-regular fa-copy"></i>
+Copy
+</button>
+
+</div>
+</div>
+
+<div>
+
+<label class="text-[11px] font-bold text-pink-400 uppercase tracking-wider">
+Kết nối tới bạn bè
+</label>
+
+<div class="flex gap-2 mt-1.5">
+
+<input id="friendIdInput"
+type="text"
+placeholder="Dán Mã ID..."
+class="w-full bg-white border-2 border-pink-200 rounded-2xl px-3.5 py-2 text-xs font-bold focus:outline-none focus:border-pink-400 text-pink-800">
+
+<button onclick="connectToFriend()" class="bg-loopy-accent hover:bg-pink-600 text-white font-extrabold px-4 py-2 rounded-2xl text-xs shadow-md shrink-0">
+<i class="fa-solid fa-heart"></i>
+</button>
+
+</div>
+</div>
+
+</div>
+
+<!-- PARTNER -->
+<div class="p-4 flex-1 overflow-y-auto">
+
+<span class="text-[11px] font-bold text-pink-400 uppercase tracking-wider block mb-3">
+Đang trò chuyện
+</span>
+
+<div id="partnerCard" class="hidden p-3 rounded-2xl bg-pink-100/80 border-2 border-pink-200 items-center gap-3 shadow-sm">
+
+<div class="w-10 h-10 rounded-xl bg-pink-400 text-white flex items-center justify-center font-bold shadow">
+🌸
+</div>
+
+<div class="overflow-hidden">
+<div id="partnerIdText" class="font-extrabold text-xs text-pink-800 truncate">
+Loopy Peer
+</div>
+
+<div class="text-[10px] text-emerald-600 font-bold flex items-center gap-1">
+<span class="w-2 h-2 rounded-full bg-emerald-500 online-dot"></span>
+Đã kết nối
+</div>
+</div>
+
+</div>
+
+<div id="emptyPartnerState" class="text-center py-8 text-pink-400 text-xs font-bold">
+<i class="fa-solid fa-heart-crack text-3xl mb-2 block text-pink-300"></i>
+Chưa kết nối với ai.
+<br>
+Gửi ID của bạn cho bạn bè!
+</div>
+
+</div>
+
+</aside>
+
+<!-- CHAT -->
+<main class="flex-1 flex flex-col h-full bg-pink-50/30 relative min-w-0">
+
+<!-- HEADER -->
+<header class="p-4 border-b-2 border-pink-200/80 flex items-center justify-between bg-white/70 backdrop-blur-md shrink-0">
+
+<div class="flex items-center gap-3">
+
+<div class="w-11 h-11 rounded-2xl bg-gradient-to-tr from-pink-300 to-rose-300 border-2 border-white flex items-center justify-center text-xl shadow-sm pulse-heart">
+🌸
+</div>
+
+<div>
+<h2 id="chatHeaderTitle" class="font-extrabold text-sm text-pink-800">
+Phòng Chat Loopy
+</h2>
+
+<p id="chatHeaderSub" class="text-[11px] text-pink-400 font-bold">
+Chờ kết nối...
+</p>
+</div>
+
+</div>
+
+<div class="flex gap-2">
+
+<button onclick="createFloatingHeart()" class="w-9 h-9 rounded-xl bg-pink-100 hover:bg-pink-200 text-pink-500">
+💗
+</button>
+
+<button onclick="clearChat()" class="w-9 h-9 rounded-xl bg-pink-100 hover:bg-pink-200 text-pink-500">
+<i class="fa-solid fa-broom text-xs"></i>
+</button>
+
+</div>
+
+</header>
+
+<!-- MESSAGES -->
+<div id="chatBox" class="flex-1 p-4 md:p-6 overflow-y-auto space-y-3 flex flex-col chat-bg">
+
+<div id="welcomeMessage" class="text-center py-5 px-4 text-xs text-pink-400 font-bold bg-white/70 rounded-3xl border-2 border-pink-200 max-w-md mx-auto my-auto shadow-sm">
+
+<div class="text-4xl mb-2">
+🌸💗🌷
+</div>
+
+<div class="text-pink-600 font-extrabold text-sm mb-1">
+Chào mừng đến Loopy Messenger!
+</div>
+
+Gửi ID của bạn cho bạn bè để bắt đầu trò chuyện P2P đáng yêu. ✨
+
+</div>
+
+</div>
+
+<!-- EMOJI + STICKER PICKER -->
+<div id="picker" class="hidden absolute bottom-[76px] left-3 right-3 md:left-4 md:right-4 bg-white border-4 border-pink-200 rounded-3xl shadow-2xl z-40 picker overflow-hidden">
+
+<div class="flex items-center gap-2 p-3 border-b border-pink-100">
+
+<button id="emojiTab" onclick="switchPicker('emoji')" class="tab-active px-3 py-1.5 rounded-xl text-xs font-extrabold">
+😊 Emoji
+</button>
+
+<button id="stickerTab" onclick="switchPicker('sticker')" class="px-3 py-1.5 rounded-xl text-xs font-extrabold text-pink-500 hover:bg-pink-100">
+🎀 Sticker
+</button>
+
+<div class="flex-1"></div>
+
+<button onclick="togglePicker()" class="text-pink-400 hover:text-pink-600">
+<i class="fa-solid fa-xmark"></i>
+</button>
+
+</div>
+
+<!-- EMOJI -->
+<div id="emojiPanel" class="p-3">
+
+<div class="flex gap-2 mb-2">
+
+<input id="emojiSearch"
+oninput="searchEmoji(this.value)"
+placeholder="Tìm emoji..."
+class="flex-1 bg-pink-50 border-2 border-pink-100 rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-pink-300">
+
+</div>
+
+<div id="emojiCategories" class="flex gap-1 overflow-x-auto pb-2"></div>
+
+<div id="emojiGrid" class="grid grid-cols-8 sm:grid-cols-10 md:grid-cols-12 gap-1 max-h-52 overflow-y-auto"></div>
+
+</div>
+
+<!-- STICKER -->
+<div id="stickerPanel" class="hidden p-3">
+
+<div id="stickerGrid" class="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-6 gap-2 max-h-56 overflow-y-auto"></div>
+
+</div>
+
+</div>
+
+<!-- INPUT -->
+<div class="p-3 md:p-4 border-t-2 border-pink-200/80 bg-white/80 flex items-center gap-2 shrink-0">
+
+<button
+id="pickerBtn"
+onclick="togglePicker()"
+disabled
+class="w-10 h-10 rounded-2xl bg-pink-100 hover:bg-pink-200 text-pink-600 flex items-center justify-center text-lg shrink-0 opacity-50">
+😊
+</button>
+
+<input
+type="file"
+id="imageInput"
+accept="image/*"
+class="hidden"
+onchange="sendImage(this)">
+
+<button
+id="uploadBtn"
+onclick="document.getElementById('imageInput').click()"
+disabled
+class="w-10 h-10 rounded-2xl bg-pink-100 hover:bg-pink-200 text-pink-600 flex items-center justify-center shrink-0 opacity-50">
+<i class="fa-solid fa-image"></i>
+</button>
+
+<div class="relative flex-1">
+
+<input
+id="messageInput"
+type="text"
+placeholder="Nhập tin nhắn..."
+disabled
+onkeydown="handleInputKey(event)"
+class="w-full bg-pink-50/60 border-2 border-pink-200 rounded-2xl px-4 py-2.5 pr-9 text-xs md:text-sm font-bold focus:outline-none focus:border-pink-400 text-pink-900 placeholder-pink-300">
+
+<button
+onclick="clearInput()"
+class="absolute right-3 top-1/2 -translate-y-1/2 text-pink-300 hover:text-pink-500">
+<i class="fa-solid fa-xmark text-xs"></i>
+</button>
+
+</div>
+
+<button
+id="sendBtn"
+onclick="sendTextMessage()"
+disabled
+class="w-10 h-10 rounded-2xl bg-loopy-accent hover:bg-pink-600 text-white flex items-center justify-center shadow-md opacity-50 shrink-0">
+<i class="fa-solid fa-paper-plane text-sm"></i>
+</button>
+
+</div>
+
+</main>
+
+</div>
+
+<!-- AVATAR MODAL -->
+<div id="avatarModal" class="hidden fixed inset-0 bg-black/40 backdrop-blur-sm z-[90] flex items-center justify-center p-4">
+
+<div class="bg-white rounded-3xl p-5 border-4 border-pink-200 w-full max-w-sm shadow-2xl">
+
+<div class="flex justify-between items-center border-b border-pink-100 pb-3 mb-4">
+
+<h3 class="font-extrabold text-pink-700 text-sm">
+🌸 Đổi Avatar
+</h3>
+
+<button onclick="closeAvatarModal()" class="text-pink-400 text-lg">
+<i class="fa-solid fa-xmark"></i>
+</button>
+
+</div>
+
+<div class="grid grid-cols-5 gap-2 mb-4">
+
+<button onclick="setAvatarFromPreset('🎀')" class="avatarPreset">🎀</button>
+<button onclick="setAvatarFromPreset('🌸')" class="avatarPreset">🌸</button>
+<button onclick="setAvatarFromPreset('🐰')" class="avatarPreset">🐰</button>
+<button onclick="setAvatarFromPreset('🐱')" class="avatarPreset">🐱</button>
+<button onclick="setAvatarFromPreset('🦄')" class="avatarPreset">🦄</button>
+<button onclick="setAvatarFromPreset('🐻')" class="avatarPreset">🐻</button>
+<button onclick="setAvatarFromPreset('🐼')" class="avatarPreset">🐼</button>
+<button onclick="setAvatarFromPreset('🍓')" class="avatarPreset">🍓</button>
+<button onclick="setAvatarFromPreset('🌷')" class="avatarPreset">🌷</button>
+<button onclick="setAvatarFromPreset('💗')" class="avatarPreset">💗</button>
+
+</div>
+
+<input
+id="avatarUrlInput"
+placeholder="https://domain.com/avatar.png"
+class="w-full bg-pink-50 border-2 border-pink-200 rounded-2xl px-3 py-2 text-xs outline-none focus:border-pink-400">
+
+<div class="flex gap-2 mt-3">
+
+<button onclick="closeAvatarModal()" class="flex-1 bg-pink-100 text-pink-600 font-bold py-2 rounded-2xl text-xs">
+Hủy
+</button>
+
+<button onclick="applyCustomAvatarUrl()" class="flex-1 bg-loopy-accent text-white font-bold py-2 rounded-2xl text-xs">
+Lưu
+</button>
+
+</div>
+
+</div>
+</div>
+
+<style>
+.avatarPreset{
+height:48px;
+border-radius:15px;
+background:#fff0f3;
+border:2px solid #ffe4e8;
+font-size:24px;
+transition:.15s;
+}
+
+.avatarPreset:hover{
+transform:scale(1.1);
+border-color:#fda4af;
+background:#ffe4e8;
+}
+</style>
+
+<script>
+let peer=null;
+let conn=null;
+let broadcastChannel=null;
+let isCanvasFallback=false;
+
+let myAvatarUrl=localStorage.getItem('loopy_avatar')||'🎀';
+
+const myRandomId='loopy-'+Math.floor(100000+Math.random()*900000);
+
+let currentEmojiCategory='😀';
+
+const EMOJIS={
+'😀':[
+'😀','😃','😄','😁','😆','😅','😂','🤣','😊','😇','🙂','🙃',
+'😉','😌','😍','🥰','😘','😗','😙','😚','😋','😛','😝','😜',
+'🤪','🤨','🧐','🤓','😎','🤩','🥳','😏','😒','😞','😔','😟',
+'😕','🙁','☹️','😣','😖','😫','😩','🥺','😢','😭','😤','😠',
+'😡','🤬','🤯','😳','🥵','🥶','😱','😨','😰','😥','😓','🤗',
+'🤔','🫣','🤭','🫢','🫡','🤫','🤥','😶','🫠','😐','😑','😬',
+'🙄','😯','😦','😧','😮','😲','🥱','😴','🤤','😪','😵','🤐',
+'🥴','🤢','🤮','🤧','😷','🤒','🤕','🤑','🤠','😈','👿','👹',
+'👺','🤡','💩','👻','💀','☠️','👽','👾','🤖','🎃'
+],
+
+'💗':[
+'❤️','🧡','💛','💚','💙','💜','🖤','🤍','🤎','💔','❤️‍🔥',
+'❤️‍🩹','❣️','💕','💞','💓','💗','💖','💘','💝','💟','💌',
+'💋','💯','💢','💥','💫','💦','💨','💤','💭','💎','🌸','🌷',
+'🌹','🌺','🌻','🌼','🌱','🌿','🍀','☘️','🪷','🌈'
+],
+
+'👋':[
+'👋','🤚','🖐️','✋','🖖','👌','🤌','🤏','✌️','🤞','🫰','🤟',
+'🤘','🤙','👈','👉','👆','👇','☝️','✍️','👏','🙌','👐','🤲',
+'🤝','🙏','💪','🫶','👀','👁️','👄','🫦','👶','🧒','👦','👧',
+'🧑','👨','👩','🧓','👴','👵'
+],
+
+'🐻':[
+'🐶','🐱','🐭','🐹','🐰','🦊','🐻','🐼','🐨','🐯','🦁','🐮',
+'🐷','🐸','🐵','🙈','🙉','🙊','🐒','🐔','🐧','🐦','🐤','🦆',
+'🦅','🦉','🐺','🐗','🐴','🦄','🐝','🪱','🦋','🐌','🐞','🐜',
+'🪲','🕷️','🐢','🐍','🦎','🦖','🦕','🐙','🦑','🦀','🐠','🐟',
+'🐬','🐳','🦈','🐊','🐘','🦒','🦓','🦍','🦧','🐅','🐆','🦘'
+],
+
+'🍓':[
+'🍎','🍐','🍊','🍋','🍌','🍉','🍇','🍓','🫐','🍈','🍒','🍑',
+'🥭','🍍','🥥','🥝','🍅','🥑','🍆','🥔','🥕','🌽','🌶️','🫑',
+'🥒','🥬','🥦','🧄','🧅','🍞','🥐','🥨','🧀','🥚','🍳','🧇',
+'🥞','🍔','🍟','🍕','🌭','🌮','🌯','🍿','🍩','🍪','🎂','🍰',
+'🧁','🍫','🍭','🍬','🍮','🍯','🧋','☕','🍵','🥤','🧃'
+],
+
+'⚽':[
+'⚽','🏀','🏈','⚾','🥎','🎾','🏐','🏉','🥏','🎱','🪀','🏓',
+'🏸','🥅','⛳','🎣','🤿','🥊','🥋','🎽','🛹','🛼','🛷','⛸️',
+'🎿','🏆','🥇','🥈','🥉','🎖️','🏅','🎮','🕹️','🎲','🎯','🎳',
+'🎨','🎭','🎪','🎤','🎧','🎵','🎶','🎸','🎹','🥁','🎺','🎻'
+],
+
+'✨':[
+'✨','⭐','🌟','💫','⚡','🔥','🌈','☀️','🌤️','☁️','🌧️','⛈️',
+'❄️','☃️','🌙','🌕','🌑','🌎','🌍','🌏','💡','🎉','🎊','🎁',
+'🎈','🎀','🎀','🪄','🔮','🧸','🩷','💗','💞','🫧','🪽','🦋'
+]
+};
+
+const STICKERS=[
+'🐰','🐱','🐻','🐼','🦄','🐸','🐹','🐨','🐯','🦊',
+'🐶','🐥','🐣','🐧','🐝','🦋','🐢','🐳','🐬','🦖',
+'🌸','🌷','🌹','🌺','🌻','🌼','🍓','🍒','🍑','🍉',
+'🍰','🧁','🍩','🍪','🍫','🍭','🍬','🧋','☕','🍕',
+'💗','💖','💕','💞','💓','💝','💘','💌','💋','💯',
+'🎀','✨','🌈','⭐','🌟','💫','🔥','🎉','🎊','🎁',
+'🥰','😍','😘','😚','😊','😇','🤭','🥺','😭','😂',
+'🤣','😎','🤩','🥳','😴','🤗','🤔','😱','😳','🙈'
+];
+
+function getEl(id){
+return document.getElementById(id);
+}
+
+function init(){
+
+updateAvatarUI(myAvatarUrl);
+renderEmojiCategories();
+renderEmojiGrid();
+renderStickers();
+
+if('BroadcastChannel' in window){
+
+broadcastChannel=new BroadcastChannel('loopy_canvas_channel');
+
+broadcastChannel.onmessage=e=>{
+
+const data=e.data;
+
+if(data&&data.senderId!==myRandomId){
+
+if(!isCanvasFallback&&!conn){
+enableCanvasFallback('Phát hiện Local Sync giữa các Tab!');
+}
+
+appendMessage(
+data.content,
+'received',
+data.type,
+data.time,
+data.avatar
+);
+
+}
+};
+
+}
+
+try{
+
+peer=new Peer(myRandomId);
+
+peer.on('open',id=>{
+
+getEl('myIdText').innerText=id;
+getEl('statusBadge').innerText='Sẵn sàng kết nối 🌸';
+
+});
+
+peer.on('connection',connection=>{
+
+conn=connection;
+setupConnectionHandlers();
+
+showToast('Có người bạn Loopy đã kết nối! 💗');
+
+});
+
+peer.on('error',err=>{
+
+console.warn(err);
+
+if(
+err.type==='browser-incompatible'||
+err.message?.includes('SecurityError')||
+err.message?.includes('WebSocket')
+){
+
+enableCanvasFallback(
+'Canvas hạn chế WebSocket. Đã chuyển sang Local Sync!'
+);
+
+}
+
+});
+
+}catch(e){
+
+enableCanvasFallback(
+'Không thể khởi tạo PeerJS. Đã bật Local Sync!'
+);
+
+}
+
+}
+
+window.addEventListener('DOMContentLoaded',init);
+
+function renderEmojiCategories(){
+
+const box=getEl('emojiCategories');
+
+box.innerHTML=Object.keys(EMOJIS).map(category=>`
+
+<button
+class="px-2.5 py-1.5 rounded-xl text-sm hover:bg-pink-100 shrink-0 ${category===currentEmojiCategory?'bg-pink-100':''}"
+onclick="selectEmojiCategory('${category}')">
+${category}
+</button>
+
+`).join('');
+
+}
+
+function selectEmojiCategory(category){
+
+currentEmojiCategory=category;
+
+renderEmojiCategories();
+renderEmojiGrid();
+
+}
+
+function renderEmojiGrid(list=null){
+
+const grid=getEl('emojiGrid');
+
+const emojis=list||EMOJIS[currentEmojiCategory];
+
+grid.innerHTML=emojis.map(emoji=>`
+
+<button
+class="emoji-item rounded-xl p-2 text-2xl"
+onclick="insertEmoji('${emoji}')">
+${emoji}
+</button>
+
+`).join('');
+
+}
+
+function searchEmoji(value){
+
+value=value.toLowerCase().trim();
+
+if(!value){
+
+renderEmojiGrid();
+return;
+
+}
+
+const all=[].concat(...Object.values(EMOJIS));
+
+const unique=[...new Set(all)];
+
+const result=unique.filter(x=>x.toLowerCase().includes(value));
+
+renderEmojiGrid(result);
+
+}
+
+function insertEmoji(emoji){
+
+const input=getEl('messageInput');
+
+if(!input||input.disabled)return;
+
+input.value+=emoji;
+input.focus();
+
+}
+
+function renderStickers(){
+
+const grid=getEl('stickerGrid');
+
+grid.innerHTML='';
+
+STICKERS.forEach((sticker,index)=>{
+
+const button=document.createElement('button');
+
+button.className=
+'p-2 rounded-2xl hover:bg-pink-100 border border-pink-100 text-4xl sticker-bounce';
+
+button.innerText=sticker;
+
+button.onclick=()=>sendSticker(sticker);
+
+grid.appendChild(button);
+
+});
+
+}
+
+function switchPicker(type){
+
+const emojiPanel=getEl('emojiPanel');
+const stickerPanel=getEl('stickerPanel');
+
+const emojiTab=getEl('emojiTab');
+const stickerTab=getEl('stickerTab');
+
+if(type==='emoji'){
+
+emojiPanel.classList.remove('hidden');
+stickerPanel.classList.add('hidden');
+
+emojiTab.classList.add('tab-active');
+stickerTab.classList.remove('tab-active');
+
+}else{
+
+emojiPanel.classList.add('hidden');
+stickerPanel.classList.remove('hidden');
+
+emojiTab.classList.remove('tab-active');
+stickerTab.classList.add('tab-active');
+
+}
+
+}
+
+function togglePicker(){
+
+const picker=getEl('picker');
+
+picker.classList.toggle('hidden');
+
+}
+
+document.addEventListener('click',e=>{
+
+const picker=getEl('picker');
+const btn=getEl('pickerBtn');
+
+if(
+picker &&
+!picker.contains(e.target) &&
+btn &&
+!btn.contains(e.target)
+){
+
+picker.classList.add('hidden');
+
+}
+
+});
+
+function openAvatarModal(){
+
+getEl('avatarModal').classList.remove('hidden');
+
+const input=getEl('avatarUrlInput');
+
+input.value=
+myAvatarUrl.startsWith('http')?
+myAvatarUrl:'';
+
+}
+
+function closeAvatarModal(){
+
+getEl('avatarModal').classList.add('hidden');
+
+}
+
+function setAvatarFromPreset(value){
+
+saveAndSetAvatar(value);
+closeAvatarModal();
+
+}
+
+function applyCustomAvatarUrl(){
+
+const value=getEl('avatarUrlInput').value.trim();
+
+if(!value){
+
+showToast('Vui lòng nhập URL ảnh!');
+return;
+
+}
+
+if(!/^https?:\/\/.+/i.test(value)){
+
+showToast('URL ảnh không hợp lệ!');
+return;
+
+}
+
+saveAndSetAvatar(value);
+closeAvatarModal();
+
+}
+
+function saveAndSetAvatar(value){
+
+myAvatarUrl=value;
+
+localStorage.setItem('loopy_avatar',value);
+
+updateAvatarUI(value);
+
+showToast('Đã đổi Avatar! 🌸');
+
+}
+
+function updateAvatarUI(value){
+
+const display=getEl('myAvatarDisplay');
+
+if(value.startsWith('http')){
+
+display.innerHTML='';
+
+const img=document.createElement('img');
+
+img.src=value;
+img.className='w-full h-full object-cover';
+
+img.onerror=()=>{
+
+display.innerText='🎀';
+
+};
+
+display.appendChild(img);
+
+}else{
+
+display.innerText=value;
+
+}
+
+}
+
+function enableCanvasFallback(reason){
+
+if(isCanvasFallback)return;
+
+isCanvasFallback=true;
+
+getEl('myIdText').innerText=myRandomId;
+
+getEl('canvasNoticeBanner').classList.remove('hidden');
+getEl('canvasNoticeBanner').classList.add('flex');
+
+getEl('noticeMsg').innerText=reason;
+
+getEl('statusBadge').innerText='Local Sync 🌸';
+getEl('statusBadge').className='text-xs text-amber-500 font-bold';
+
+getEl('chatHeaderTitle').innerText='Loopy Local Sync';
+getEl('chatHeaderSub').innerText='Chat giữa các Tab 🌸';
+
+getEl('partnerCard').classList.remove('hidden');
+getEl('partnerCard').classList.add('flex');
+
+getEl('emptyPartnerState').classList.add('hidden');
+
+toggleInputState(true);
+
+showToast('Đã bật Local Sync! 🌸');
+
+}
+
+function connectToFriend(){
+
+const input=getEl('friendIdInput');
+
+const id=input.value.trim();
+
+if(!id){
+
+showToast('Vui lòng nhập Mã ID!');
+return;
+
+}
+
+if(id===myRandomId){
+
+showToast('Không thể kết nối với chính mình!');
+return;
+
+}
+
+if(isCanvasFallback||!peer){
+
+showToast('Local Sync không dùng ID P2P. Hãy mở Tab mới!');
+return;
+
+}
+
+getEl('statusBadge').innerText='Đang kết nối...';
+
+conn=peer.connect(id);
+
+conn.on('open',()=>{
+
+setupConnectionHandlers();
+
+showToast('Kết nối thành công! 💗');
+
+});
+
+conn.on('error',()=>{
+
+showToast('Không tìm thấy ID!');
+
+getEl('statusBadge').innerText='Sẵn sàng kết nối 🌸';
+
+});
+
+}
+
+function setupConnectionHandlers(){
+
+if(!conn)return;
+
+const id=conn.peer;
+
+getEl('chatHeaderTitle').innerText=id;
+getEl('chatHeaderSub').innerText='Đang trực tuyến 🌸';
+
+getEl('partnerIdText').innerText=id;
+
+getEl('partnerCard').classList.remove('hidden');
+getEl('partnerCard').classList.add('flex');
+
+getEl('emptyPartnerState').classList.add('hidden');
+
+toggleInputState(true);
+
+conn.on('data',data=>{
+
+appendMessage(
+data.content,
+'received',
+data.type,
+data.time,
+data.avatar
+);
+
+});
+
+conn.on('close',()=>{
+
+getEl('chatHeaderSub').innerText='Đã ngắt kết nối';
+
+getEl('partnerCard').classList.add('hidden');
+getEl('emptyPartnerState').classList.remove('hidden');
+
+toggleInputState(false);
+
+showToast('Đối phương đã ngắt kết nối.');
+
+});
+
+}
+
+function toggleInputState(enable){
+
+[
+'messageInput',
+'sendBtn',
+'uploadBtn',
+'pickerBtn'
+].forEach(id=>{
+
+const el=getEl(id);
+
+if(!el)return;
+
+el.disabled=!enable;
+el.style.opacity=enable?'1':'.5';
+
+});
+
+}
+
+function handleInputKey(event){
+
+if(event.key==='Enter'){
+
+event.preventDefault();
+
+sendTextMessage();
+
+}
+
+}
+
+function sendData(data){
+
+if(isCanvasFallback||!conn){
+
+if(broadcastChannel){
+
+broadcastChannel.postMessage({
+senderId:myRandomId,
+...data
+});
+
+}
+
+return;
+
+}
+
+if(conn.open){
+
+conn.send(data);
+
+}
+
+}
+
+function sendTextMessage(){
+
+const input=getEl('messageInput');
+
+const text=input.value.trim();
+
+if(!text)return;
+
+const data={
+type:'text',
+content:text,
+time:getCurrentTime(),
+avatar:myAvatarUrl
+};
+
+sendData(data);
+
+appendMessage(
+text,
+'sent',
+'text',
+data.time,
+myAvatarUrl
+);
+
+input.value='';
+
+createFloatingHeart();
+
+}
+
+function sendSticker(sticker){
+
+const data={
+type:'sticker',
+content:sticker,
+time:getCurrentTime(),
+avatar:myAvatarUrl
+};
+
+sendData(data);
+
+appendMessage(
+sticker,
+'sent',
+'sticker',
+data.time,
+myAvatarUrl
+);
+
+getEl('picker').classList.add('hidden');
+
+}
+
+function sendImage(input){
+
+if(!input.files||!input.files[0])return;
+
+const file=input.files[0];
+
+if(file.size>5*1024*1024){
+
+showToast('Ảnh tối đa 5MB!');
+input.value='';
+return;
+
+}
+
+const reader=new FileReader();
+
+reader.onload=e=>{
+
+const data={
+type:'image',
+content:e.target.result,
+time:getCurrentTime(),
+avatar:myAvatarUrl
+};
+
+sendData(data);
+
+appendMessage(
+data.content,
+'sent',
+'image',
+data.time,
+myAvatarUrl
+);
+
+};
+
+reader.readAsDataURL(file);
+
+input.value='';
+
+}
+
+function appendMessage(content,direction,type,time,avatar){
+
+const chat=getEl('chatBox');
+
+const welcome=getEl('welcomeMessage');
+
+if(welcome)welcome.remove();
+
+const wrapper=document.createElement('div');
+
+const sent=direction==='sent';
+
+wrapper.className=
+`flex gap-2 ${sent?'flex-row-reverse':'flex-row'} items-end my-1 message-in`;
+
+const avatarDiv=document.createElement('div');
+
+avatarDiv.className=
+'w-8 h-8 rounded-xl bg-pink-200 border border-white flex items-center justify-center overflow-hidden shrink-0 text-sm shadow-sm';
+
+const userAvatar=avatar||(sent?myAvatarUrl:'🌸');
+
+if(userAvatar.startsWith('http')){
+
+const img=document.createElement('img');
+
+img.src=userAvatar;
+img.className='w-full h-full object-cover';
+
+img.onerror=()=>{
+avatarDiv.innerText='🌸';
+};
+
+avatarDiv.appendChild(img);
+
+}else{
+
+avatarDiv.innerText=userAvatar;
+
+}
+
+const container=document.createElement('div');
+
+container.className=
+`flex flex-col ${sent?'items-end':'items-start'} space-y-1 max-w-[80%]`;
+
+if(type==='text'){
+
+const bubble=document.createElement('div');
+
+bubble.className=sent?
+'bg-gradient-to-r from-pink-400 to-rose-400 text-white rounded-2xl rounded-tr-sm border-2 border-white px-4 py-2.5 text-xs md:text-sm font-bold break-words shadow-sm':
+'bg-white text-pink-900 border-2 border-pink-200 rounded-2xl rounded-tl-sm px-4 py-2.5 text-xs md:text-sm font-bold break-words shadow-sm';
+
+bubble.innerText=content;
+
+container.appendChild(bubble);
+
+}
+
+else if(type==='image'){
+
+const box=document.createElement('div');
+
+box.className=
+'bg-white border-2 border-pink-200 p-1.5 rounded-2xl shadow-sm';
+
+const img=document.createElement('img');
+
+img.src=content;
+img.className='rounded-xl max-h-60 max-w-xs object-cover';
+
+box.appendChild(img);
+container.appendChild(box);
+
+}
+
+else if(type==='sticker'){
+
+const sticker=document.createElement('div');
+
+sticker.className=
+'text-7xl md:text-8xl drop-shadow-md sticker-bounce';
+
+sticker.innerText=content;
+
+container.appendChild(sticker);
+
+}
+
+const timestamp=document.createElement('span');
+
+timestamp.className=
+'text-[10px] font-bold text-pink-400 px-1';
+
+timestamp.innerText=time;
+
+container.appendChild(timestamp);
+
+wrapper.appendChild(avatarDiv);
+wrapper.appendChild(container);
+
+chat.appendChild(wrapper);
+
+chat.scrollTop=chat.scrollHeight;
+
+}
+
+function clearInput(){
+
+getEl('messageInput').value='';
+
+getEl('messageInput').focus();
+
+}
+
+function clearChat(){
+
+if(!confirm('Xóa toàn bộ tin nhắn trên màn hình?'))return;
+
+getEl('chatBox').innerHTML=`
+
+<div id="welcomeMessage" class="text-center py-5 px-4 text-xs text-pink-400 font-bold bg-white/70 rounded-3xl border-2 border-pink-200 max-w-md mx-auto my-auto shadow-sm">
+
+<div class="text-4xl mb-2">
+🌸💗🌷
+</div>
+
+<div class="text-pink-600 font-extrabold text-sm mb-1">
+Loopy Messenger
+</div>
+
+Tin nhắn đã được xóa khỏi màn hình.
+
+</div>
+
+`;
+
+}
+
+function getCurrentTime(){
+
+const now=new Date();
+
+return now.getHours().toString().padStart(2,'0')+
+':'+
+now.getMinutes().toString().padStart(2,'0');
+
+}
+
+function copyMyId(){
+
+const id=getEl('myIdText').innerText;
+
+if(!id||id.includes('...'))return;
+
+navigator.clipboard.writeText(id)
+.then(()=>{
+showToast('Đã copy Mã ID! 💗');
+})
+.catch(()=>{
+
+const input=document.createElement('input');
+
+input.value=id;
+
+document.body.appendChild(input);
+
+input.select();
+
+document.execCommand('copy');
+
+input.remove();
+
+showToast('Đã copy Mã ID! 💗');
+
+});
+
+}
+
+function openInNewTab(){
+
+window.open(window.location.href,'_blank');
+
+}
+
+function showToast(message){
+
+const toast=getEl('toast');
+
+getEl('toastMsg').innerText=message;
+
+toast.classList.remove(
+'translate-y-[-100px]',
+'opacity-0'
+);
+
+clearTimeout(window.toastTimer);
+
+window.toastTimer=setTimeout(()=>{
+
+toast.classList.add(
+'translate-y-[-100px]',
+'opacity-0'
+);
+
+},3000);
+
+}
+
+function createFloatingHeart(){
+
+const heart=document.createElement('div');
+
+heart.className='float-heart';
+
+heart.innerText=[
+'💗','💖','💕','💞','🌸','✨','🎀'
+][Math.floor(Math.random()*7)];
+
+heart.style.left=
+Math.random()*90+5+'%';
+
+heart.style.bottom='90px';
+
+document.body.appendChild(heart);
+
+setTimeout(()=>heart.remove(),1500);
+
+}
+
+</script>
+
+</body>
+</html>
